@@ -38,7 +38,7 @@
                 // 1. Access camera
                 const stream = await navigator.mediaDevices.getUserMedia({
                     video: {
-                        facingMode: { ideal: "user" },
+                        facingMode: { exact: "user" },
                         width: { ideal: 1280 },
                         height: { ideal: 720 }
                     }
